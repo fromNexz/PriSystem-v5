@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>PriSystem - Configurações</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+        .config-section {
+            margin-bottom: 2rem;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .config-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .config-card:hover {
+            border-color: #4a90e2;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .config-card.programado {
+            border-color: #28a745;
+        }
+
+        .config-card.programado:hover {
+            border-color: #218838;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .config-card.ia {
+            border-color: #6f42c1;
+        }
+
+        .config-card.ia:hover {
+            border-color: #5a32a3;
+            box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+        }
+
+        .config-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #f8f9fa;
+        }
+
+        .config-card.programado .config-icon {
+            background: #d4edda;
+            color: #28a745;
+        }
+
+        .config-card.ia .config-icon {
+            background: #e7d9f7;
+            color: #6f42c1;
+        }
+
+        .config-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .config-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .config-description {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .config-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        .config-card.programado .config-badge {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .config-card.ia .config-badge {
+            background: #e7d9f7;
+            color: #4a148c;
+        }
+
+        .divider {
+            border: none;
+            border-top: 2px solid #e0e0e0;
+            margin: 2rem 0;
+        }
+
+        /* Status do WhatsApp */
+        .status-disconnected {
+            background: #6c757d !important;
+        }
+        
+        .status-qr {
+            background: #ffc107 !important;
+            animation: pulse-qr 2s infinite;
+        }
+        
+        .status-connected {
+            background: #28a745 !important;
+        }
+
+        @keyframes pulse-qr {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #bot-status-container {
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6c757d;
+        }
+
+        #qr-container {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        #qr-container .qr-box {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #qr-image {
+            max-width: 300px;
+            width: 100%;
+        }
+
+        #connected-info {
+            margin-top: 1rem;
+        }
+
+        #connected-info .info-box {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="app-header-title">PriSystem</div>
+            <div class="app-header-status">
+                <span id="header-bot-type">Chatbot: —</span>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <aside class="sidebar">
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html" class="sidebar-link">Dashboard</a></li>
+                    <li><a href="/index.html" class="sidebar-link">Agendamentos</a></li>
+                    <li><a href="/clientes.html" class="sidebar-link">Clientes</a></li>
+                    <li><a href="/settings.html" class="sidebar-link active">Configurações</a></li>
+                </ul>
+            </aside>
+
+            <section class="content">
+                <!-- Status do WhatsApp Bot -->
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h2 class="card-title">Status do WhatsApp Bot</h2>
+                    
+                    <div id="bot-status-container">
+                        <div class="status-indicator-wrapper">
+                            <div id="status-indicator"></div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem;" id="status-text">Verificando status...</div>
+                                <div style="font-size: 0.9rem; color: #666;" id="status-detail">Aguarde...</div>
+                            </div>
+                        </div>
+                        
+                        <div id="qr-container" style="display: none;">
+                            <p style="margin-bottom: 1rem; font-weight: 500;">Escaneie o QR Code com seu WhatsApp:</p>
+                            <div class="qr-box">
+                                <img id="qr-image" src="" alt="QR Code">
+                            </div>
+                            <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">
+                                1. Abra o WhatsApp no seu telefone<br>
+                                2. Toque em Mais opções > Aparelhos conectados<br>
+                                3. Toque em Conectar um aparelho<br>
+                                4. Aponte seu telefone para esta tela
+                            </p>
+                            <button onclick="refreshQRCode()" class="button-secondary" style="margin-top: 1rem;">
+                                Atualizar QR Code
+                            </button>
+                        </div>
+
+                        <div id="connected-info" style="display: none;">
+                            <div class="info-box">
+                                <strong>Telefone conectado:</strong> <span id="connected-phone">-</span><br>
+                                <strong>Bot ativo:</strong> <span id="connected-bot-type">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem;">
+                        <button id="btn-restart-bot" onclick="restartBot()" class="button-primary">
+                            Reiniciar Bot
+                        </button>
+                        <button id="btn-disconnect" onclick="disconnectBot()" class="button-danger" style="display: none;">
+                            Desconectar
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <!-- Configurações Específicas do Chatbot -->
+                <div class="config-section">
+                    <h1 class="page-title">Configurações do Chatbot</h1>
+                    <p style="color: #666; margin-bottom: 1.5rem;">
+                        Escolha o tipo de chatbot abaixo para acessar suas configurações específicas
+                    </p>
+
+                    <div class="config-grid">
+                        <!-- Card Chatbot Programado -->
+                        <div class="config-card programado" onclick="window.location.href='chatbot-config.html'">
+                            <div class="config-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="16 18 22 12 16 6"></polyline>
+                                    <polyline points="8 6 2 12 8 18"></polyline>
+                                </svg>
+                            </div>
+                            <div class="config-title">Chatbot Programado</div>
+                            <div class="config-description">
+                                Configure mensagens automáticas em sequência com regras definidas
+                            </div>
+                            <div class="config-badge">Fluxo por Etapas</div>
+                        </div>
+
+                        <!-- Card Chatbot IA -->
+                        <div class="config-card ia" onclick="alert('Configurações de IA em breve!')">
+                            <div class="config-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                    <path d="M2 17l10 5 10-5"></path>
+                                    <path d="M2 12l10 5 10-5"></path>
+                                </svg>
+                            </div>
+                            <div class="config-title">Chatbot IA</div>
+                            <div class="config-description">
+                                Configure respostas inteligentes com inteligência artificial
+                            </div>
+                            <div class="config-badge">Respostas Dinâmicas</div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <!-- Configurações Gerais -->
+                <div class="card">
+                    <h2 class="card-title">Configurações Gerais</h2>
+
+                    <div id="settings-status" class="form-label" style="margin-bottom: 8px;"></div>
+
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label class="form-label" for="bot-type">Chatbot ativo atualmente</label>
+                            <select id="bot-type" class="form-select">
+                                <option value="rule">Chatbot programado</option>
+                                <option value="ai">Chatbot IA</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="welcome-message">Mensagem de boas-vindas</label>
+                            <textarea id="welcome-message" class="form-textarea"
+                                placeholder="Texto enviado quando a conversa começa."></textarea>
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="closing-message">Mensagem de encerramento</label>
+                            <textarea id="closing-message" class="form-textarea"
+                                placeholder="Texto enviado ao finalizar o atendimento."></textarea>
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="open-hour">Horário de abertura</label>
+                            <input id="open-hour" type="time" class="form-input" />
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="close-hour">Horário de fechamento</label>
+                            <input id="close-hour" type="time" class="form-input" />
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="notes">Notas internas</label>
+                            <textarea id="notes" class="form-textarea"
+                                placeholder="Anotações internas sobre o chatbot, modelo usado, regras especiais, etc."></textarea>
+                        </div>
+                    </div>
+
+                    <button id="save-settings" class="button-primary">
+                        Salvar alterações
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/settings.js"></script>
+    <script src="/js/chatbot-control.js"></script>
+</body>
+
+</html>

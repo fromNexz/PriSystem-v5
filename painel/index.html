@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>PriSystem - Agendamentos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+
+<body>
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="app-header-title">PriSystem</div>
+            <div class="app-header-status">
+                <span id="header-date"></span>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <aside class="sidebar">
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html" class="sidebar-link">Dashboard</a></li>
+                    <li><a href="/index.html" class="sidebar-link active">Agendamentos</a></li>
+                    <li><a href="/clientes.html" class="sidebar-link">Clientes</a></li>
+                    <li><a href="/settings.html" class="sidebar-link">Configurações</a></li>
+                </ul>
+            </aside>
+
+            <section class="content">
+                <div class="card">
+                    <h1 class="card-title">Agenda do dia</h1>
+
+                    <div class="form-grid" style="margin-bottom: 12px;">
+                        <div class="form-field">
+                            <label class="form-label" for="date-filter">Data</label>
+                            <input id="date-filter" type="date" class="form-input" />
+                        </div>
+                        <div class="form-field">
+                            <label class="form-label">&nbsp;</label>
+                            <button id="refresh-btn" class="button-primary">
+                                Atualizar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="appointments-status" class="form-label" style="margin-bottom: 8px;"></div>
+
+                    <div class="appointments-table-wrapper">
+                        <table class="appointments-table">
+                            <thead>
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Cliente</th>
+                                    <th>Serviço</th>
+                                    <th>Canal</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointments-body">
+                                <!-- linhas preenchidas via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/appointments.js"></script>
+
+</body>
+
+</html>

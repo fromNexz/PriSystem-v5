@@ -1,0 +1,14 @@
+{
+  "name": "primalzoni-bot-rule",
+  "version": "1.0.0",
+  "description": "Bot Programado - Pri Malzoni Estética",
+  "main": "chatbot.js",
+  "scripts": {
+    "start": "node chatbot.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode": "^1.5.3",
+    "pg": "^8.11.0"
+  }
+}

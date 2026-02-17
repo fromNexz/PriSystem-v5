@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>PriSystem - Clientes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+
+<body>
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="app-header-title">PriSystem</div>
+            <div class="app-header-status">
+                <span id="header-date"></span>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <aside class="sidebar">
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html" class="sidebar-link">Dashboard</a></li>
+                    <li><a href="/index.html" class="sidebar-link">Agendamentos</a></li>
+                    <li><a href="/clientes.html" class="sidebar-link active">Clientes</a></li>
+                    <li><a href="/settings.html" class="sidebar-link">Configurações</a></li>
+                </ul>
+            </aside>
+
+            <section class="content">
+                <div class="card">
+                    <h1 class="card-title">Clientes</h1>
+                    <p class="form-label">Clientes que já falaram com o chatbot ou têm agendamentos.</p>
+
+                    <div id="customers-status" class="form-label" style="margin-bottom: 8px;"></div>
+
+                    <div class="appointments-table-wrapper">
+                        <table class="appointments-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Telefone</th>
+                                    <th>Agendamentos</th>
+                                    <th>Último agendamento</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-body">
+                                <tr>
+                                    <td colspan="6">Carregando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal de bloqueio -->
+    <div id="block-modal" class="modal hidden">
+        <div class="modal-overlay" id="modal-overlay"></div>
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2>Bloquear cliente</h2>
+            </div>
+            <div class="modal-body">
+                <p id="block-modal-text" style="margin-bottom: 1rem;"></p>
+                <div class="form-field">
+                    <label class="form-label" for="block-reason">Motivo do bloqueio</label>
+                    <textarea id="block-reason" rows="3" class="form-input"
+                        placeholder="Ex.: Cliente pediu para não receber mensagens."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="block-cancel" class="button-secondary">Cancelar</button>
+                <button id="block-confirm" class="button-danger">Confirmar bloqueio</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/clientes.js"></script>
+</body>
+
+</html>
