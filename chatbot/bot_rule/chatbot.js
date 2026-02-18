@@ -1,3 +1,6 @@
+// Arquivo: chatbot/bot_rule/chatbot.js
+// SUBSTITUA COMPLETAMENTE
+
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const { Pool } = require('pg');
 const fs = require('fs');
@@ -6,12 +9,15 @@ const qr = require('qrcode');
 
 // ==================== CONFIGURAÇÃO ====================
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const BASE_DIR = path.join(__dirname, '..', '..');
+const DATA_DIR = path.join(BASE_DIR, 'data');
 const IMAGE_DIR = path.join(DATA_DIR, 'image');
+const ASSETS_DIR = path.join(DATA_DIR, 'assets');
 const QR_PATH = path.join(IMAGE_DIR, 'whatsapp_qr.png');
 const STATUS_PATH = path.join(DATA_DIR, 'bot_status.json');
+const CATALOGO_PATH = path.join(ASSETS_DIR, 'catalogo.pdf');
 
-[DATA_DIR, IMAGE_DIR].forEach(dir => {
+[DATA_DIR, IMAGE_DIR, ASSETS_DIR].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
         console.log(`✅ Diretório criado: ${dir}`);
@@ -21,6 +27,7 @@ const STATUS_PATH = path.join(DATA_DIR, 'bot_status.json');
 console.log('📂 Configuração de pastas:');
 console.log('  QR será salvo em:', QR_PATH);
 console.log('  Status em:', STATUS_PATH);
+console.log('  Catálogo em:', CATALOGO_PATH);
 
 // ==================== BANCO DE DADOS ====================
 
@@ -61,7 +68,7 @@ const client = new Client({
     }
 });
 
-// ==================== DADOS DOS SERVIÇOS ====================
+// ==================== SERVIÇOS ====================
 
 const SERVICOS = {
     1: { nome: 'BrowLaminations', preco: 'R$ 150,00' },
@@ -99,6 +106,7 @@ let CHATBOT_SETTINGS = null;
 let conversasAtivas = {};
 let conversasEncerradas = new Set();
 let PALAVRA_CHAVE_REATIVAR = 'atendimento';
+let FLOW_MODE = 'default'; // 'default' ou 'custom'
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 let lastQrGeneration = 0;
@@ -135,7 +143,9 @@ async function loadChatbotSettings() {
         
         if (result.rows.length > 0) {
             CHATBOT_SETTINGS = result.rows[0];
+            FLOW_MODE = CHATBOT_SETTINGS.flow_mode || 'default';
             console.log(`⚙️ Configurações carregadas: Bot tipo ${CHATBOT_SETTINGS.active_bot_type}`);
+            console.log(`🔀 Modo de fluxo: ${FLOW_MODE}`);
         }
     } catch (error) {
         console.error('❌ Erro ao carregar configurações:', error);
@@ -143,6 +153,11 @@ async function loadChatbotSettings() {
 }
 
 async function loadProgrammedMessages() {
+    if (FLOW_MODE === 'default') {
+        console.log('📋 Usando fluxo PADRÃO (hardcoded)');
+        return;
+    }
+    
     try {
         const result = await pool.query(`
             SELECT * FROM chatbot_messages
@@ -151,7 +166,7 @@ async function loadProgrammedMessages() {
         `);
         
         MENSAGENS_PROGRAMADAS = result.rows;
-        console.log(`📋 ${MENSAGENS_PROGRAMADAS.length} mensagens programadas carregadas`);
+        console.log(`📋 ${MENSAGENS_PROGRAMADAS.length} mensagens personalizadas carregadas`);
     } catch (error) {
         console.error('❌ Erro ao carregar mensagens:', error);
     }
@@ -277,41 +292,43 @@ function reativarConversa(numeroTelefone) {
 async function iniciarConversaPadrao(msg) {
     await delay(1000);
     
-    const boas_vindas = CHATBOT_SETTINGS?.welcome_message || 
-        `Olá, seja muito bem-vinda! 🤍\n\n` +
+    const mensagem1 = `Olá, seja muito bem-vinda! 🤍\n\n` +
         `Aqui é a assistente virtual da *Pri Malzoni Estética*.\n` +
         `Vou te orientar no agendamento de forma rápida e organizada ✨\n\n` +
         `Para começarmos, poderia me informar, por favor,\n` +
         `seu *nome e sobrenome*? 🤍`;
     
-    await client.sendMessage(msg.from, boas_vindas);
+    await client.sendMessage(msg.from, mensagem1);
     
     conversasAtivas[msg.from] = {
-        aguardandoNome: true,
+        etapa: 1,
         dados: {}
     };
     
-    console.log(`🆕 Nova conversa iniciada: ${msg.from}`);
+    console.log(`🆕 Nova conversa iniciada (modo ${FLOW_MODE}): ${msg.from}`);
 }
 
 async function processarRespostaPadrao(msg, mensagem, conversa) {
-    if (conversa.aguardandoNome) {
+    const etapa = conversa.etapa;
+    
+    // ETAPA 1: Nome
+    if (etapa === 1) {
         conversa.dados.nome = mensagem;
-        conversa.aguardandoNome = false;
+        conversa.etapa = 2;
         
-        await client.sendMessage(msg.from,
-            `Obrigada, ${mensagem}! ✨\n\n` +
+        await delay(500);
+        const mensagem2 = `Obrigada, ${mensagem}! ✨\n\n` +
             `Em qual período você prefere atendimento?\n\n` +
             `⏰ *Manhã*: das 8h às 12h\n` +
             `⏰ *Tarde*: das 14h às 18h\n\n` +
-            `_Por favor, responda com *manhã* ou *tarde*_`
-        );
+            `_Por favor, responda com *manhã* ou *tarde*_`;
         
-        conversa.aguardandoPeriodo = true;
+        await client.sendMessage(msg.from, mensagem2);
         return;
     }
     
-    if (conversa.aguardandoPeriodo) {
+    // ETAPA 2: Período
+    if (etapa === 2) {
         const mensagemLower = mensagem.toLowerCase().trim();
         
         if (mensagemLower.includes('manhã') || mensagemLower.includes('manha')) {
@@ -323,33 +340,60 @@ async function processarRespostaPadrao(msg, mensagem, conversa) {
             return;
         }
         
-        conversa.aguardandoPeriodo = false;
+        conversa.etapa = 3;
         
-        let mensagemServicos = `Perfeito! 🤍\n\nQual procedimento você deseja realizar?\n\n`;
+        await delay(500);
+        let mensagem3 = `Perfeito! 🤍\nAgora me diga, por gentileza,\nqual procedimento você deseja realizar:\n\n`;
         
         Object.keys(SERVICOS).forEach(id => {
             const servico = SERVICOS[id];
-            mensagemServicos += `*${id}* - ${servico.nome} ${servico.preco}\n`;
+            mensagem3 += `*${id}* - ${servico.nome} ${servico.preco}\n`;
         });
         
-        mensagemServicos += `\n_Digite o número do procedimento desejado_`;
+        mensagem3 += `\nConfira o catálogo do whats e conheça os serviços também! 🥰`;
         
-        await client.sendMessage(msg.from, mensagemServicos);
-        conversa.aguardandoServico = true;
+        await client.sendMessage(msg.from, mensagem3);
+        
+        // Enviar catálogo em PDF após 2 segundos
+        await delay(2000);
+        try {
+            if (fs.existsSync(CATALOGO_PATH)) {
+                const media = MessageMedia.fromFilePath(CATALOGO_PATH);
+                await client.sendMessage(msg.from, media, {
+                    caption: '📄 Catálogo Pri Malzoni Estética'
+                });
+                console.log(`📄 Catálogo enviado para: ${msg.from}`);
+            } else {
+                console.warn('⚠️ Catálogo não encontrado em:', CATALOGO_PATH);
+            }
+        } catch (error) {
+            console.error('❌ Erro ao enviar catálogo:', error);
+        }
+        
         return;
     }
     
-    if (conversa.aguardandoServico) {
+    // ETAPA 3: Serviço
+    if (etapa === 3) {
         const numeroServico = parseInt(mensagem.trim());
         
         if (SERVICOS[numeroServico]) {
             const servico = SERVICOS[numeroServico];
             conversa.dados.servico = `${servico.nome} - ${servico.preco}`;
+            conversa.etapa = 4;
             
             const phone = msg.from.replace('@c.us', '');
             await saveCustomer(phone, conversa.dados.nome);
             
-            await client.sendMessage(msg.from,
+            await delay(500);
+            const mensagem4 = `Ótimo ✨\n` +
+                `Agora vou te mostrar as formas disponíveis para seguir com o agendamento 👇\n\n` +
+                `👉 Se preferir realizar o agendamento de forma independente e definitiva, (em média 3 minutos)\n` +
+                `acesse o link abaixo:\n\n` +
+                `https://sites.appbeleza.com.br/primalzonimicropigme\n\n` +
+                `👉 Caso queira falar diretamente com a Pri,\n` +
+                `pedimos que aguarde ela finalizar os atendimentos do dia 🤍\n\n` +
+                `Assim que possível, ela retorna com toda atenção que você merece por ordem de sequência se solicitação.\n\n` +
                 `━━━━━━━━━━━━━━━\n` +
                 `📋 *Resumo da sua solicitação:*\n` +
                 `👤 Nome: ${conversa.dados.nome}\n` +
@@ -357,14 +401,23 @@ async function processarRespostaPadrao(msg, mensagem, conversa) {
                 `💆 Serviço: ${conversa.dados.servico}\n` +
                 `━━━━━━━━━━━━━━━\n\n` +
                 `✅ Seu atendimento foi registrado!\n\n` +
-                `_Digite *${PALAVRA_CHAVE_REATIVAR}* para novo atendimento_`
-            );
+                `_Se precisar de um novo atendimento, digite *${PALAVRA_CHAVE_REATIVAR}* 🤍_`;
+            
+            await client.sendMessage(msg.from, mensagem4);
             
             encerrarConversa(msg.from);
         } else {
             await client.sendMessage(msg.from, `Número inválido. Escolha entre 1 e 26 🤍`);
         }
     }
+}
+
+// ==================== FLUXO PERSONALIZADO ====================
+
+async function processarRespostaPersonalizado(msg, mensagem, conversa) {
+    // TODO: Implementar lógica de mensagens personalizadas do banco
+    // Por enquanto usa o fluxo padrão
+    await processarRespostaPadrao(msg, mensagem, conversa);
 }
 
 // ==================== HANDLER PRINCIPAL ====================
@@ -407,7 +460,12 @@ async function handleMessage(msg) {
             return;
         }
         
-        await processarRespostaPadrao(msg, mensagem, conversa);
+        // Escolher fluxo baseado no modo
+        if (FLOW_MODE === 'default') {
+            await processarRespostaPadrao(msg, mensagem, conversa);
+        } else {
+            await processarRespostaPersonalizado(msg, mensagem, conversa);
+        }
         
     } catch (error) {
         console.error('❌ ERRO no handleMessage:', error);
@@ -433,6 +491,7 @@ client.on('message_create', handleMessage);
     
     console.log('\n✨ Bot Rule configurado e pronto!\n');
     console.log(`🔑 Palavra-chave para reativar: "${PALAVRA_CHAVE_REATIVAR}"`);
+    console.log(`🔀 Modo de fluxo: ${FLOW_MODE}`);
 })();
 
 process.on('unhandledRejection', (reason) => {

@@ -1,128 +1,307 @@
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
+from typing import Optional, List
+import psycopg2
 from datetime import datetime
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from db import get_connection
 
 router = APIRouter(prefix="/chatbot", tags=["chatbot"])
 
+# Configuração do banco
+DB_CONFIG = {
+    'host': '204.157.124.199',
+    'port': 5432,
+    'user': 'postgres',
+    'password': '003289',
+    'database': 'pri_system'
+}
+
+def get_db_connection():
+    """Cria e retorna uma conexão com o banco"""
+    return psycopg2.connect(**DB_CONFIG)
+
+
+# ==================== MODELS ====================
 
 class ChatbotMessage(BaseModel):
-    session_id: str = Field(..., example="sess-123")
-    channel: str = Field(..., example="site")  # site, whatsapp
-    phone: str | None = Field(None, example="5511999999999")
-    message: str = Field(..., example="Oi, quero agendar um horário")
+    id: Optional[int] = None
+    order_position: int
+    message_text: str
+    wait_for_reply: bool = False
+    is_active: bool = True
 
 
-class ChatbotReply(BaseModel):
-    reply: str
-    active_bot_type: str
-    session_id: str
+# ==================== ENDPOINTS DE MODO ====================
 
-def get_current_settings(conn):
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT id,
-                   active_bot_type,
-                   welcome_message,
-                   closing_message,
-                   timezone
-            FROM chatbot_settings
+@router.get("/settings")
+def get_chatbot_settings():
+    """Retorna as configurações do chatbot"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM chatbot_settings
+            WHERE active_bot_type = 'rule'
             ORDER BY id
             LIMIT 1
-            """
-        )
-        row = cur.fetchone()
-        if not row:
-            raise HTTPException(status_code=500, detail="Configurações do chatbot não encontradas")
-        return row
-
-@router.post("/message", response_model=ChatbotReply)
-def handle_message(payload: ChatbotMessage):
-    """
-    Endpoint único para o chatbot JS.
-    - Lê active_bot_type (rule ou ai).
-    - Registra log da mensagem.
-    - Retorna uma resposta simples (por enquanto).
-    """
-    conn = get_connection()
-    try:
-        with conn:
-            settings = get_current_settings(conn)
-            bot_type = settings["active_bot_type"]
-
-            # 1) Log da mensagem recebida
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO chatbot_logs (
-                        customer_id,
-                        channel,
-                        message_from,
-                        message_type,
-                        content
-                    ) VALUES (
-                        NULL,  -- depois podemos linkar via customers
-                        %s,
-                        'user',
-                        'text',
-                        %s
-                    )
-                    """,
-                    (payload.channel, payload.message)
-                )
-
-            # 2) Decidir resposta conforme bot_type
-            if bot_type == "rule":
-                reply_text = rule_based_reply(payload, settings)
-            else:  # 'ai'
-                reply_text = ai_based_reply_mock(payload, settings)
-
-            # 3) Log da resposta do bot
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO chatbot_logs (
-                        customer_id,
-                        channel,
-                        message_from,
-                        message_type,
-                        content
-                    ) VALUES (
-                        NULL,
-                        %s,
-                        'bot',
-                        'text',
-                        %s
-                    )
-                    """,
-                    (payload.channel, reply_text)
-                )
-
-        return ChatbotReply(
-            reply=reply_text,
-            active_bot_type=bot_type,
-            session_id=payload.session_id,
-        )
+        """)
+        
+        columns = [desc[0] for desc in cursor.description]
+        result = cursor.fetchone()
+        
+        cursor.close()
+        
+        if result:
+            settings = dict(zip(columns, result))
+            # Garantir que flow_mode existe
+            if 'flow_mode' not in settings or settings['flow_mode'] is None:
+                settings['flow_mode'] = 'default'
+            return settings
+        else:
+            # Retornar configuração padrão se não existir
+            return {
+                "id": 1,
+                "active_bot_type": "rule",
+                "flow_mode": "default",
+                "welcome_message": "",
+                "closing_message": "",
+                "open_hour": None,
+                "close_hour": None,
+                "notes": ""
+            }
+    except Exception as e:
+        print(f"❌ Erro ao buscar settings: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar configurações: {str(e)}")
     finally:
-        conn.close()
-
-def rule_based_reply(payload: ChatbotMessage, settings) -> str:
-    text = payload.message.strip().lower()
-
-    # Exemplo bem simples só pra teste
-    if any(x in text for x in ["oi", "olá", "ola", "bom dia", "boa tarde", "boa noite"]):
-        return settings.get("welcome_message") or "Oi! Vamos agendar seu horário?"
-
-    if "agendar" in text or "horário" in text or "horario" in text:
-        return "Claro! Me diga o dia e horário que você prefere."
-
-    return "Não entendi muito bem. Você quer agendar um horário, remarcar ou cancelar?"
+        if conn:
+            conn.close()
 
 
-def ai_based_reply_mock(payload: ChatbotMessage, settings) -> str:
-    # Placeholder: depois você conecta em um modelo de IA de verdade
-    base = "Sou a versão IA da Pri. "
-    return base + "Ainda estou em configuração, mas já posso anotar seu pedido: \"" + payload.message + "\""
+@router.put("/flow-mode")
+def update_flow_mode(mode: str = Query(..., regex="^(default|custom)$")):
+    """Atualiza o modo de fluxo (default ou custom)"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se existe registro
+        cursor.execute("""
+            SELECT id FROM chatbot_settings
+            WHERE active_bot_type = 'rule'
+            LIMIT 1
+        """)
+        
+        result = cursor.fetchone()
+        
+        if result:
+            # Atualizar registro existente
+            cursor.execute("""
+                UPDATE chatbot_settings 
+                SET flow_mode = %s
+                WHERE active_bot_type = 'rule'
+                RETURNING id
+            """, (mode,))
+        else:
+            # Criar registro se não existir
+            cursor.execute("""
+                INSERT INTO chatbot_settings (active_bot_type, flow_mode)
+                VALUES ('rule', %s)
+                RETURNING id
+            """, (mode,))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        
+        if result:
+            return {
+                "message": f"Modo alterado para: {mode}",
+                "success": True,
+                "flow_mode": mode
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Falha ao atualizar")
+            
+    except psycopg2.Error as e:
+        print(f"❌ Erro SQL: {e}")
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro no banco de dados: {str(e)}")
+    except Exception as e:
+        print(f"❌ Erro geral: {e}")
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar modo: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
 
 
+# ==================== ENDPOINTS DE MENSAGENS ====================
+
+@router.get("/messages", response_model=List[ChatbotMessage])
+def get_messages():
+    """Retorna todas as mensagens programadas"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, order_position, message_text, wait_for_reply, is_active
+            FROM chatbot_messages
+            ORDER BY order_position ASC
+        """)
+        
+        messages = []
+        for row in cursor.fetchall():
+            messages.append({
+                "id": row[0],
+                "order_position": row[1],
+                "message_text": row[2],
+                "wait_for_reply": row[3],
+                "is_active": row[4]
+            })
+        
+        cursor.close()
+        return messages
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar mensagens: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.post("/messages")
+def create_message(message: ChatbotMessage):
+    """Cria uma nova mensagem programada"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO chatbot_messages (order_position, message_text, wait_for_reply, is_active)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id
+        """, (message.order_position, message.message_text, message.wait_for_reply, message.is_active))
+        
+        new_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        
+        return {"id": new_id, "message": "Mensagem criada com sucesso"}
+        
+    except Exception as e:
+        print(f"❌ Erro ao criar mensagem: {e}")
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.put("/messages/{message_id}")
+def update_message(message_id: int, message: ChatbotMessage):
+    """Atualiza uma mensagem existente"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE chatbot_messages
+            SET order_position = %s,
+                message_text = %s,
+                wait_for_reply = %s,
+                is_active = %s
+            WHERE id = %s
+            RETURNING id
+        """, (message.order_position, message.message_text, message.wait_for_reply, 
+              message.is_active, message_id))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        
+        if result:
+            return {"message": "Mensagem atualizada com sucesso"}
+        else:
+            raise HTTPException(status_code=404, detail="Mensagem não encontrada")
+            
+    except Exception as e:
+        print(f"❌ Erro ao atualizar mensagem: {e}")
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.delete("/messages/{message_id}")
+def delete_message(message_id: int):
+    """Deleta uma mensagem"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM chatbot_messages
+            WHERE id = %s
+            RETURNING id
+        """, (message_id,))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        
+        if result:
+            return {"message": "Mensagem deletada com sucesso"}
+        else:
+            raise HTTPException(status_code=404, detail="Mensagem não encontrada")
+            
+    except Exception as e:
+        print(f"❌ Erro ao deletar mensagem: {e}")
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()
+
+
+@router.post("/messages/reorder")
+def reorder_messages(message_ids: List[int]):
+    """Reordena as mensagens"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        for position, message_id in enumerate(message_ids, start=1):
+            cursor.execute("""
+                UPDATE chatbot_messages
+                SET order_position = %s
+                WHERE id = %s
+            """, (position, message_id))
+        
+        conn.commit()
+        cursor.close()
+        
+        return {"message": "Mensagens reordenadas com sucesso"}
+        
+    except Exception as e:
+        print(f"❌ Erro ao reordenar mensagens: {e}")
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn:
+            conn.close()

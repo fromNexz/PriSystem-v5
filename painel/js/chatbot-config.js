@@ -1,5 +1,120 @@
 // Arquivo: prisystem/painel/js/chatbot-config.js - VERSÃO COMPLETA ATUALIZADA
 
+// ==================== GERENCIAMENTO DE MODO ====================
+
+window.setFlowMode = async function (mode) {
+    console.log('🔄 Alterando modo para:', mode);
+
+    try {
+        const response = await fetch(`/chatbot/flow-mode?mode=${mode}`, {
+            method: 'PUT'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Erro ao alterar modo');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Modo salvo no banco:', mode);
+            alert('✅ ' + data.message + '\n\n⚠️ Reinicie o bot para aplicar as mudanças.');
+            updateModeUI(mode);
+        } else {
+            alert('❌ Erro: ' + data.message);
+        }
+    } catch (error) {
+        console.error('❌ Erro ao alterar modo:', error);
+        alert('❌ Erro ao alterar modo: ' + error.message);
+    }
+};
+
+function updateModeUI(mode) {
+    console.log('🎨 Atualizando UI para modo:', mode);
+
+    const btnDefault = document.getElementById('btn-mode-default');
+    const btnCustom = document.getElementById('btn-mode-custom');
+    const modeText = document.getElementById('current-mode-text');
+    const modeDesc = document.getElementById('mode-description-text');
+    const customSection = document.getElementById('custom-messages-section');
+
+    if (!btnDefault || !btnCustom) {
+        console.error('❌ Botões não encontrados, tentando novamente...');
+        return;
+    }
+
+    if (mode === 'default') {
+        btnDefault.className = 'button-primary';
+        btnCustom.className = 'button-secondary';
+        if (modeText) modeText.textContent = '🔵 Padrão';
+        if (modeDesc) modeDesc.textContent = 'Fluxo profissional com 4 mensagens fixas e envio de catálogo';
+        if (customSection) customSection.style.display = 'none';
+        console.log('✅ UI atualizada para PADRÃO');
+    } else if (mode === 'custom') {
+        btnDefault.className = 'button-secondary';
+        btnCustom.className = 'button-primary';
+        if (modeText) modeText.textContent = '🟣 Personalizado';
+        if (modeDesc) modeDesc.textContent = 'Crie suas próprias mensagens e fluxo de atendimento';
+        if (customSection) customSection.style.display = 'block';
+        console.log('✅ UI atualizada para PERSONALIZADO');
+    }
+}
+
+async function loadCurrentMode() {
+    console.log('📥 Carregando modo do banco...');
+
+    try {
+        const response = await fetch('/chatbot/settings');
+
+        if (!response.ok) {
+            throw new Error('Erro ao carregar settings');
+        }
+
+        const data = await response.json();
+        const mode = data.flow_mode || 'default';
+
+        console.log('✅ Modo carregado do banco:', mode);
+        console.log('📋 Dados completos:', data);
+
+        // Aguardar um pouco para garantir que elementos existem
+        setTimeout(() => {
+            updateModeUI(mode);
+        }, 50);
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar modo:', error);
+        updateModeUI('default');
+    }
+}
+
+// ==================== INICIALIZAÇÃO ====================
+
+// Garantir execução no carregamento
+(function () {
+    console.log('🔧 Inicializando gerenciamento de modo...');
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📄 DOMContentLoaded disparado');
+            setTimeout(loadCurrentMode, 200);
+        });
+    } else {
+        console.log('📄 DOM já está pronto');
+        setTimeout(loadCurrentMode, 200);
+    }
+})();
+
+// Também carregar quando a página ficar visível (se estava em outra aba)
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        console.log('👁️ Página ficou visível, recarregando modo...');
+        loadCurrentMode();
+    }
+});
+
+
+
 let messages = [];
 let draggedElement = null;
 let hasUnsavedChanges = false;
@@ -7,130 +122,130 @@ let originalMessagesJson = "";
 
 // Templates de resumo
 const SUMMARY_TEMPLATES = {
-  classic: {
-    name: "Clássico",
-    format: `━━━━━━━━━━━━━━━
+    classic: {
+        name: "Clássico",
+        format: `━━━━━━━━━━━━━━━
 📋 Resumo da sua solicitação:
 👤 Nome: {nome}
 ⏰ Período: {periodo}
 💆 Serviço: {servico}
 ━━━━━━━━━━━━━━━`
-  },
-  modern: {
-    name: "Moderno",
-    format: `✨ RESUMO DO AGENDAMENTO ✨
+    },
+    modern: {
+        name: "Moderno",
+        format: `✨ RESUMO DO AGENDAMENTO ✨
 
 Nome: {nome}
 Período: {periodo}
 Serviço: {servico}
 
 Aguardamos você!`
-  },
-  minimal: {
-    name: "Minimalista",
-    format: `Resumo:
+    },
+    minimal: {
+        name: "Minimalista",
+        format: `Resumo:
 • {nome}
 • {periodo}
 • {servico}`
-  }
+    }
 };
 
 // Definir tipos de mensagem
 const MESSAGE_TYPES = {
-  message: {
-    label: "Mensagem",
-    icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
-    color: "#4a90e2"
-  },
-  important: {
-    label: "Recado Importante",
-    icon: '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>',
-    color: "#ffc107"
-  },
-  alert: {
-    label: "Alerta",
-    icon: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
-    color: "#dc3545"
-  },
-  final: {
-    label: "Final (com resumo)",
-    icon: '<polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>',
-    color: "#28a745"
-  }
+    message: {
+        label: "Mensagem",
+        icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
+        color: "#4a90e2"
+    },
+    important: {
+        label: "Recado Importante",
+        icon: '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>',
+        color: "#ffc107"
+    },
+    alert: {
+        label: "Alerta",
+        icon: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
+        color: "#dc3545"
+    },
+    final: {
+        label: "Final (com resumo)",
+        icon: '<polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>',
+        color: "#28a745"
+    }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadMessages();
-  
-  // Detectar mudanças não salvas ao sair
-  window.addEventListener('beforeunload', (e) => {
-    if (hasUnsavedChanges) {
-      e.preventDefault();
-      e.returnValue = '';
-    }
-  });
+    loadMessages();
+
+    // Detectar mudanças não salvas ao sair
+    window.addEventListener('beforeunload', (e) => {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
 });
 
 // Marcar como não salvo
 function markAsUnsaved() {
-  hasUnsavedChanges = true;
-  document.getElementById('unsaved-indicator').classList.add('show');
+    hasUnsavedChanges = true;
+    document.getElementById('unsaved-indicator').classList.add('show');
 }
 
 // Marcar como salvo
 function markAsSaved() {
-  hasUnsavedChanges = false;
-  document.getElementById('unsaved-indicator').classList.remove('show');
-  originalMessagesJson = JSON.stringify(messages);
+    hasUnsavedChanges = false;
+    document.getElementById('unsaved-indicator').classList.remove('show');
+    originalMessagesJson = JSON.stringify(messages);
 }
 
 // Carregar mensagens do backend
 async function loadMessages() {
-  try {
-    const response = await fetch("/chatbot-messages/");
-    messages = await response.json();
-    
-    if (messages.length === 0) {
-      addNewMessage();
-    } else {
-      renderMessages();
+    try {
+        const response = await fetch("/chatbot-messages/");
+        messages = await response.json();
+
+        if (messages.length === 0) {
+            addNewMessage();
+        } else {
+            renderMessages();
+        }
+
+        originalMessagesJson = JSON.stringify(messages);
+    } catch (error) {
+        console.error("Erro ao carregar mensagens:", error);
+        addNewMessage();
     }
-    
-    originalMessagesJson = JSON.stringify(messages);
-  } catch (error) {
-    console.error("Erro ao carregar mensagens:", error);
-    addNewMessage();
-  }
 }
 
 // Renderizar todas as mensagens
 function renderMessages() {
-  const builder = document.getElementById("message-builder");
-  builder.innerHTML = "";
+    const builder = document.getElementById("message-builder");
+    builder.innerHTML = "";
 
-  messages.forEach((msg, index) => {
-    const card = createMessageCard(msg, index);
-    builder.appendChild(card);
-  });
+    messages.forEach((msg, index) => {
+        const card = createMessageCard(msg, index);
+        builder.appendChild(card);
+    });
 }
 
 // Criar card de mensagem
 function createMessageCard(msg, index) {
-  const card = document.createElement("div");
-  card.className = "message-card";
-  card.draggable = true;
-  card.dataset.index = index;
-  card.dataset.type = msg.message_type || "message";
+    const card = document.createElement("div");
+    card.className = "message-card";
+    card.draggable = true;
+    card.dataset.index = index;
+    card.dataset.type = msg.message_type || "message";
 
-  card.addEventListener("dragstart", handleDragStart);
-  card.addEventListener("dragover", handleDragOver);
-  card.addEventListener("drop", handleDrop);
-  card.addEventListener("dragend", handleDragEnd);
+    card.addEventListener("dragstart", handleDragStart);
+    card.addEventListener("dragover", handleDragOver);
+    card.addEventListener("drop", handleDrop);
+    card.addEventListener("dragend", handleDragEnd);
 
-  const currentType = MESSAGE_TYPES[msg.message_type || "message"];
-  const isFinalType = msg.message_type === "final";
+    const currentType = MESSAGE_TYPES[msg.message_type || "message"];
+    const isFinalType = msg.message_type === "final";
 
-  card.innerHTML = `
+    card.innerHTML = `
     <div class="message-header">
       <div class="message-number">
         <span class="drag-handle">☰</span>
@@ -227,28 +342,28 @@ function createMessageCard(msg, index) {
           onchange="handleFileUpload(${index}, this.files[0])"
         />
         <div id="upload-text-${index}">
-          ${msg.media_filename 
-            ? `<strong>✓ ${msg.media_filename}</strong><br><small>Clique para trocar</small>` 
+          ${msg.media_filename
+            ? `<strong>✓ ${msg.media_filename}</strong><br><small>Clique para trocar</small>`
             : `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg><br>
               Clique ou arraste um arquivo aqui`
-          }
+        }
         </div>
       </div>
     </div>
   `;
 
-  return card;
+    return card;
 }
 
 // Criar preview do resumo (para tipo final)
 function createSummaryPreview(msg, index) {
-  const selectedTemplate = msg.summary_template || 'classic';
-  
-  return `
+    const selectedTemplate = msg.summary_template || 'classic';
+
+    return `
     <div class="summary-preview-section" id="summary-section-${index}">
       <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Modelo de Resumo:</label>
       <div class="summary-template-selector">
@@ -269,240 +384,240 @@ ${SUMMARY_TEMPLATES[selectedTemplate].format.replace('{nome}', 'Cliente Exemplo'
 
 // Selecionar template de resumo
 function selectSummaryTemplate(index, templateKey) {
-  updateMessage(index, 'summary_template', templateKey);
-  
-  // Atualizar UI
-  const section = document.getElementById(`summary-section-${index}`);
-  if (section) {
-    section.querySelectorAll('.template-option').forEach(opt => {
-      opt.classList.remove('selected');
-    });
-    section.querySelector(`[onclick*="'${templateKey}'"]`).classList.add('selected');
-    
-    // Atualizar preview
-    const preview = document.getElementById(`preview-${index}`);
-    if (preview) {
-      preview.textContent = SUMMARY_TEMPLATES[templateKey].format
-        .replace('{nome}', 'Cliente Exemplo')
-        .replace('{periodo}', 'Manhã (8h às 12h)')
-        .replace('{servico}', 'Serviço Exemplo - R$ 100,00');
+    updateMessage(index, 'summary_template', templateKey);
+
+    // Atualizar UI
+    const section = document.getElementById(`summary-section-${index}`);
+    if (section) {
+        section.querySelectorAll('.template-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        section.querySelector(`[onclick*="'${templateKey}'"]`).classList.add('selected');
+
+        // Atualizar preview
+        const preview = document.getElementById(`preview-${index}`);
+        if (preview) {
+            preview.textContent = SUMMARY_TEMPLATES[templateKey].format
+                .replace('{nome}', 'Cliente Exemplo')
+                .replace('{periodo}', 'Manhã (8h às 12h)')
+                .replace('{servico}', 'Serviço Exemplo - R$ 100,00');
+        }
     }
-  }
 }
 
 // Atualizar dados da mensagem
 function updateMessage(index, field, value) {
-  if (!messages[index]) {
-    messages[index] = {};
-  }
-  
-  messages[index][field] = value;
-  markAsUnsaved();
-
-  if (field === "wait_for_reply") {
-    const delayGroup = document.getElementById(`delay-group-${index}`);
-    if (delayGroup) {
-      delayGroup.style.display = value ? "none" : "block";
+    if (!messages[index]) {
+        messages[index] = {};
     }
-  }
 
-  console.log(`Mensagem ${index + 1} atualizada:`, field, value);
+    messages[index][field] = value;
+    markAsUnsaved();
+
+    if (field === "wait_for_reply") {
+        const delayGroup = document.getElementById(`delay-group-${index}`);
+        if (delayGroup) {
+            delayGroup.style.display = value ? "none" : "block";
+        }
+    }
+
+    console.log(`Mensagem ${index + 1} atualizada:`, field, value);
 }
 
 // Atualizar tipo de mensagem
 function updateMessageType(index, type) {
-  const oldType = messages[index].message_type;
-  updateMessage(index, 'message_type', type);
-  
-  // Se mudou para/de "final", re-renderizar
-  if ((oldType === 'final' && type !== 'final') || (oldType !== 'final' && type === 'final')) {
-    renderMessages();
-  } else {
-    // Apenas atualizar visual do card
-    const card = document.querySelector(`.message-card[data-index="${index}"]`);
-    if (card) {
-      card.dataset.type = type;
-      
-      const typeInfo = MESSAGE_TYPES[type];
-      const badge = card.querySelector('.type-badge');
-      if (badge) {
-        badge.className = `type-badge ${type}`;
-        badge.innerHTML = `
+    const oldType = messages[index].message_type;
+    updateMessage(index, 'message_type', type);
+
+    // Se mudou para/de "final", re-renderizar
+    if ((oldType === 'final' && type !== 'final') || (oldType !== 'final' && type === 'final')) {
+        renderMessages();
+    } else {
+        // Apenas atualizar visual do card
+        const card = document.querySelector(`.message-card[data-index="${index}"]`);
+        if (card) {
+            card.dataset.type = type;
+
+            const typeInfo = MESSAGE_TYPES[type];
+            const badge = card.querySelector('.type-badge');
+            if (badge) {
+                badge.className = `type-badge ${type}`;
+                badge.innerHTML = `
           <svg class="type-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             ${typeInfo.icon}
           </svg>
           ${typeInfo.label}
         `;
-      }
+            }
+        }
     }
-  }
 }
 
 // Adicionar nova mensagem
 function addNewMessage() {
-  const newMessage = {
-    id: null,
-    order_position: messages.length + 1,
-    message_type: "message",
-    message_text: "",
-    wait_for_reply: true,
-    delay_seconds: 0,
-    media_type: null,
-    media_url: null,
-    media_filename: null,
-    summary_template: "classic",
-    is_active: true
-  };
+    const newMessage = {
+        id: null,
+        order_position: messages.length + 1,
+        message_type: "message",
+        message_text: "",
+        wait_for_reply: true,
+        delay_seconds: 0,
+        media_type: null,
+        media_url: null,
+        media_filename: null,
+        summary_template: "classic",
+        is_active: true
+    };
 
-  messages.push(newMessage);
-  renderMessages();
-  markAsUnsaved();
+    messages.push(newMessage);
+    renderMessages();
+    markAsUnsaved();
 }
 
 // Excluir mensagem
 function deleteMessage(index) {
-  if (confirm("Tem certeza que deseja excluir esta mensagem?")) {
-    messages.splice(index, 1);
-    renderMessages();
-    markAsUnsaved();
-  }
+    if (confirm("Tem certeza que deseja excluir esta mensagem?")) {
+        messages.splice(index, 1);
+        renderMessages();
+        markAsUnsaved();
+    }
 }
 
 // Mover mensagem para cima
 function moveUp(index) {
-  if (index > 0) {
-    [messages[index], messages[index - 1]] = [messages[index - 1], messages[index]];
-    renderMessages();
-    markAsUnsaved();
-  }
+    if (index > 0) {
+        [messages[index], messages[index - 1]] = [messages[index - 1], messages[index]];
+        renderMessages();
+        markAsUnsaved();
+    }
 }
 
 // Mover mensagem para baixo
 function moveDown(index) {
-  if (index < messages.length - 1) {
-    [messages[index], messages[index + 1]] = [messages[index + 1], messages[index]];
-    renderMessages();
-    markAsUnsaved();
-  }
+    if (index < messages.length - 1) {
+        [messages[index], messages[index + 1]] = [messages[index + 1], messages[index]];
+        renderMessages();
+        markAsUnsaved();
+    }
 }
 
 // Upload de arquivo
 async function handleFileUpload(index, file) {
-  if (!file) return;
+    if (!file) return;
 
-  const uploadText = document.getElementById(`upload-text-${index}`);
-  uploadText.innerHTML = '<small>Enviando...</small>';
+    const uploadText = document.getElementById(`upload-text-${index}`);
+    uploadText.innerHTML = '<small>Enviando...</small>';
 
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
+    try {
+        const formData = new FormData();
+        formData.append("file", file);
 
-    const response = await fetch("/chatbot-messages/upload-media", {
-      method: "POST",
-      body: formData
-    });
+        const response = await fetch("/chatbot-messages/upload-media", {
+            method: "POST",
+            body: formData
+        });
 
-    if (!response.ok) throw new Error("Erro no upload");
+        if (!response.ok) throw new Error("Erro no upload");
 
-    const result = await response.json();
+        const result = await response.json();
 
-    messages[index].media_type = file.type.startsWith('image/') ? 'image' : 'document';
-    messages[index].media_url = result.url;
-    messages[index].media_filename = result.original_name;
+        messages[index].media_type = file.type.startsWith('image/') ? 'image' : 'document';
+        messages[index].media_url = result.url;
+        messages[index].media_filename = result.original_name;
 
-    const uploadArea = document.getElementById(`upload-${index}`);
-    uploadArea.classList.add('has-file');
-    uploadText.innerHTML = `<strong>✓ ${result.original_name}</strong><br><small>Clique para trocar</small>`;
+        const uploadArea = document.getElementById(`upload-${index}`);
+        uploadArea.classList.add('has-file');
+        uploadText.innerHTML = `<strong>✓ ${result.original_name}</strong><br><small>Clique para trocar</small>`;
 
-    markAsUnsaved();
-    console.log("Upload concluído:", result);
+        markAsUnsaved();
+        console.log("Upload concluído:", result);
 
-  } catch (error) {
-    console.error("Erro no upload:", error);
-    alert("Erro ao fazer upload do arquivo. Tente novamente.");
-    uploadText.innerHTML = 'Clique ou arraste um arquivo aqui';
-  }
+    } catch (error) {
+        console.error("Erro no upload:", error);
+        alert("Erro ao fazer upload do arquivo. Tente novamente.");
+        uploadText.innerHTML = 'Clique ou arraste um arquivo aqui';
+    }
 }
 
 // Drag and Drop handlers
 function handleDragStart(e) {
-  draggedElement = this;
-  this.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('text/html', this.innerHTML);
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
 }
 
 function handleDragOver(e) {
-  if (e.preventDefault) {
-    e.preventDefault();
-  }
-  e.dataTransfer.dropEffect = 'move';
-  return false;
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
 }
 
 function handleDrop(e) {
-  if (e.stopPropagation) {
-    e.stopPropagation();
-  }
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
 
-  if (draggedElement !== this) {
-    const draggedIndex = parseInt(draggedElement.dataset.index);
-    const targetIndex = parseInt(this.dataset.index);
+    if (draggedElement !== this) {
+        const draggedIndex = parseInt(draggedElement.dataset.index);
+        const targetIndex = parseInt(this.dataset.index);
 
-    const temp = messages[draggedIndex];
-    messages.splice(draggedIndex, 1);
-    messages.splice(targetIndex, 0, temp);
+        const temp = messages[draggedIndex];
+        messages.splice(draggedIndex, 1);
+        messages.splice(targetIndex, 0, temp);
 
-    renderMessages();
-    markAsUnsaved();
-  }
+        renderMessages();
+        markAsUnsaved();
+    }
 
-  return false;
+    return false;
 }
 
 function handleDragEnd(e) {
-  this.classList.remove('dragging');
+    this.classList.remove('dragging');
 }
 
 // Salvar todas as mensagens
 async function saveAll() {
-  const saveBtn = document.querySelector('.btn-save-all');
-  saveBtn.disabled = true;
-  saveBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg> Salvando...';
+    const saveBtn = document.querySelector('.btn-save-all');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg> Salvando...';
 
-  try {
-    messages.forEach((msg, index) => {
-      msg.order_position = index + 1;
-    });
-
-    for (const msg of messages) {
-      if (msg.id) {
-        await fetch(`/chatbot-messages/${msg.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(msg)
+    try {
+        messages.forEach((msg, index) => {
+            msg.order_position = index + 1;
         });
-      } else {
-        const response = await fetch("/chatbot-messages/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(msg)
-        });
-        const result = await response.json();
-        msg.id = result.id;
-      }
-    }
 
-    alert("Mensagens salvas com sucesso!");
-    markAsSaved();
-    await loadMessages();
+        for (const msg of messages) {
+            if (msg.id) {
+                await fetch(`/chatbot-messages/${msg.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(msg)
+                });
+            } else {
+                const response = await fetch("/chatbot-messages/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(msg)
+                });
+                const result = await response.json();
+                msg.id = result.id;
+            }
+        }
 
-  } catch (error) {
-    console.error("Erro ao salvar:", error);
-    alert("Erro ao salvar as mensagens. Verifique o console.");
-  } finally {
-    saveBtn.disabled = false;
-    saveBtn.innerHTML = `
+        alert("Mensagens salvas com sucesso!");
+        markAsSaved();
+        await loadMessages();
+
+    } catch (error) {
+        console.error("Erro ao salvar:", error);
+        alert("Erro ao salvar as mensagens. Verifique o console.");
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
         <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -510,31 +625,36 @@ async function saveAll() {
       </svg>
       Salvar Tudo
     `;
-  }
+    }
 }
 
 // Botão voltar
 function handleBackButton() {
-  if (hasUnsavedChanges) {
-    document.getElementById('unsaved-modal').classList.add('show');
-  } else {
-    window.location.href = 'settings.html';
-  }
+    if (hasUnsavedChanges) {
+        document.getElementById('unsaved-modal').classList.add('show');
+    } else {
+        window.location.href = 'settings.html';
+    }
 }
 
 // Salvar e sair
 async function saveAndExit() {
-  await saveAll();
-  window.location.href = 'settings.html';
+    await saveAll();
+    window.location.href = 'settings.html';
 }
 
 // Sair sem salvar
 function exitWithoutSaving() {
-  hasUnsavedChanges = false;
-  window.location.href = 'settings.html';
+    hasUnsavedChanges = false;
+    window.location.href = 'settings.html';
 }
 
 // Fechar modal
 function closeModal() {
-  document.getElementById('unsaved-modal').classList.remove('show');
+    document.getElementById('unsaved-modal').classList.remove('show');
 }
+
+setTimeout(() => {
+    console.log('⏰ Timeout de segurança: carregando modo...');
+    loadCurrentMode();
+}, 500);

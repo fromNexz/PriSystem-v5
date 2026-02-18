@@ -6,185 +6,6 @@
     <title>PriSystem - Configurações</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="/css/style.css" />
-    <style>
-        .config-section {
-            margin-bottom: 2rem;
-        }
-
-        .config-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .config-card {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 1.5rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .config-card:hover {
-            border-color: #4a90e2;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-
-        .config-card.programado {
-            border-color: #28a745;
-        }
-
-        .config-card.programado:hover {
-            border-color: #218838;
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-        }
-
-        .config-card.ia {
-            border-color: #6f42c1;
-        }
-
-        .config-card.ia:hover {
-            border-color: #5a32a3;
-            box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
-        }
-
-        .config-icon {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            background: #f8f9fa;
-        }
-
-        .config-card.programado .config-icon {
-            background: #d4edda;
-            color: #28a745;
-        }
-
-        .config-card.ia .config-icon {
-            background: #e7d9f7;
-            color: #6f42c1;
-        }
-
-        .config-icon svg {
-            width: 32px;
-            height: 32px;
-        }
-
-        .config-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #333;
-        }
-
-        .config-description {
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 1rem;
-        }
-
-        .config-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            margin-top: 0.5rem;
-        }
-
-        .config-card.programado .config-badge {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .config-card.ia .config-badge {
-            background: #e7d9f7;
-            color: #4a148c;
-        }
-
-        .divider {
-            border: none;
-            border-top: 2px solid #e0e0e0;
-            margin: 2rem 0;
-        }
-
-        /* Status do WhatsApp */
-        .status-disconnected {
-            background: #6c757d !important;
-        }
-        
-        .status-qr {
-            background: #ffc107 !important;
-            animation: pulse-qr 2s infinite;
-        }
-        
-        .status-connected {
-            background: #28a745 !important;
-        }
-
-        @keyframes pulse-qr {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        #bot-status-container {
-            padding: 1.5rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .status-indicator-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        #status-indicator {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #6c757d;
-        }
-
-        #qr-container {
-            text-align: center;
-            margin-top: 1.5rem;
-        }
-
-        #qr-container .qr-box {
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            display: inline-block;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        #qr-image {
-            max-width: 300px;
-            width: 100%;
-        }
-
-        #connected-info {
-            margin-top: 1rem;
-        }
-
-        #connected-info .info-box {
-            background: white;
-            padding: 1rem;
-            border-radius: 6px;
-            border-left: 4px solid #28a745;
-        }
-    </style>
 </head>
 
 <body>
@@ -210,16 +31,20 @@
                 <!-- Status do WhatsApp Bot -->
                 <div class="card" style="margin-bottom: 2rem;">
                     <h2 class="card-title">Status do WhatsApp Bot</h2>
-                    
+
                     <div id="bot-status-container">
                         <div class="status-indicator-wrapper">
-                            <div id="status-indicator"></div>
-                            <div>
-                                <div style="font-weight: 600; font-size: 1.1rem;" id="status-text">Verificando status...</div>
-                                <div style="font-size: 0.9rem; color: #666;" id="status-detail">Aguarde...</div>
+                            <div class="status-text-container">
+                                <div style="font-weight: 600; font-size: 1.1rem; display: flex; align-items: center;"
+                                    id="status-text">
+                                    Verificando status...
+                                </div>
+                                <div style="font-size: 0.9rem; color: #666; margin-top: 0.25rem;" id="status-detail">
+                                    Aguarde...
+                                </div>
                             </div>
                         </div>
-                        
+
                         <div id="qr-container" style="display: none;">
                             <p style="margin-bottom: 1rem; font-weight: 500;">Escaneie o QR Code com seu WhatsApp:</p>
                             <div class="qr-box">
@@ -248,7 +73,8 @@
                         <button id="btn-restart-bot" onclick="restartBot()" class="button-primary">
                             Reiniciar Bot
                         </button>
-                        <button id="btn-disconnect" onclick="disconnectBot()" class="button-danger" style="display: none;">
+                        <button id="btn-disconnect" onclick="disconnectBot()" class="button-danger"
+                            style="display: none;">
                             Desconectar
                         </button>
                     </div>
@@ -267,7 +93,8 @@
                         <!-- Card Chatbot Programado -->
                         <div class="config-card programado" onclick="window.location.href='chatbot-config.html'">
                             <div class="config-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
                                     <polyline points="16 18 22 12 16 6"></polyline>
                                     <polyline points="8 6 2 12 8 18"></polyline>
                                 </svg>
@@ -282,7 +109,8 @@
                         <!-- Card Chatbot IA -->
                         <div class="config-card ia" onclick="alert('Configurações de IA em breve!')">
                             <div class="config-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
                                     <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                                     <path d="M2 17l10 5 10-5"></path>
                                     <path d="M2 12l10 5 10-5"></path>
@@ -351,9 +179,30 @@
         </main>
     </div>
 
+    <!-- Modal Personalizado -->
+    <div class="modal-overlay-custom" id="custom-modal">
+        <div class="modal-container-custom">
+            <div class="modal-header-custom">
+                <div class="modal-icon-custom" id="modal-icon">
+                    <svg id="modal-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2"></svg>
+                </div>
+                <h3 class="modal-title-custom" id="modal-title">Título</h3>
+            </div>
+            <div class="modal-body-custom" id="modal-body">
+                Mensagem
+            </div>
+            <div class="modal-footer-custom" id="modal-footer">
+                <!-- Botões serão inseridos dinamicamente -->
+            </div>
+        </div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script src="/js/settings.js"></script>
+    <script src="/js/modal.js"></script>
     <script src="/js/chatbot-control.js"></script>
+    
 </body>
 
 </html>

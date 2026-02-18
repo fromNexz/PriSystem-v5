@@ -1,4 +1,4 @@
-<!-- Arquivo: prisystem/painel/chatbot-config.html -->
+<!-- Arquivo: painel/chatbot-config.html -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -40,31 +40,64 @@
                 <h1 class="page-title">Configurar Mensagens Programadas</h1>
                 <p style="color: #666; margin-bottom: 2rem;">
                     Configure as mensagens automáticas que o chatbot enviará em sequência.
-                    Arraste para reordenar.
                 </p>
 
-                <div class="message-builder" id="message-builder">
-                    <!-- Mensagens serão inseridas aqui dinamicamente -->
+                <!-- SEÇÃO DE MODO DE FUNCIONAMENTO -->
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h2 class="card-title">Modo de Funcionamento</h2>
+                    <p style="color: #666; margin-bottom: 1.5rem;">
+                        Escolha como o chatbot deve funcionar
+                    </p>
+
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button id="btn-mode-default" class="button-primary" onclick="setFlowMode('default')">
+                            🔵 Modo Padrão (Profissional)
+                        </button>
+                        <button id="btn-mode-custom" class="button-secondary" onclick="setFlowMode('custom')">
+                            🟣 Modo Personalizado
+                        </button>
+                    </div>
+
+                    <div id="mode-description"
+                        style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+                        <strong>Modo atual:</strong> <span id="current-mode-text">Padrão</span><br>
+                        <span id="mode-description-text">Fluxo profissional com 4 mensagens fixas e envio de
+                            catálogo</span>
+                    </div>
                 </div>
 
-                <button class="btn-add" onclick="addNewMessage()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Adicionar Nova Mensagem
-                </button>
+                <hr style="border: none; border-top: 2px solid #e0e0e0; margin: 2rem 0;">
 
-                <button class="btn-save-all" onclick="saveAll()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                    Salvar Tudo
-                </button>
+                <!-- SEÇÃO DE MENSAGENS PERSONALIZADAS (oculta por padrão) -->
+                <div id="custom-messages-section" style="display: none;">
+                    <h2 style="margin-bottom: 1rem;">Mensagens Personalizadas</h2>
+                    <p style="color: #666; margin-bottom: 1.5rem;">
+                        Crie e organize suas mensagens customizadas. Arraste para reordenar.
+                    </p>
+
+                    <div class="message-builder" id="message-builder">
+                        <!-- Mensagens serão inseridas aqui dinamicamente -->
+                    </div>
+
+                    <button class="btn-add" onclick="addNewMessage()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Adicionar Nova Mensagem
+                    </button>
+
+                    <button class="btn-save-all" onclick="saveAll()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        Salvar Tudo
+                    </button>
+                </div>
             </section>
         </main>
     </div>
