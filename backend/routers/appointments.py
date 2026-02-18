@@ -24,8 +24,8 @@ class AppointmentCreate(BaseModel):
 
 class AppointmentUpdate(BaseModel):
     service_id: Optional[int] = None
-    date: Optional[date_type] = None
-    start_time: Optional[time_type] = None
+    date: Optional[str] = None
+    start_time: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
 
